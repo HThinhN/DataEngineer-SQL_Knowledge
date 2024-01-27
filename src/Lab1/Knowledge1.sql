@@ -441,10 +441,119 @@ SELECT *
 FROM GIAOVIEN
 --------------------------------------------------------------
 ------ 2.3. Nhập dữ liệu khi có ràng buộc khóa ngoại
+-------- Trường hợp 1: Thực hiện nhập dữ liệu với 2 bảng (KHOA, BOMON) với ở BOMON có khóa ngoại
+-------- ở KHOA
+-- Xem lại 2 bảng
+SELECT *
+FROM KHOA
+SELECT *
+FROM BOMON
+-- Cách 1: Nhập KHOA -> BOMON
+-- Nhập KHOA
+INSERT INTO KHOA VALUES ('K01', N'Công nghệ thông tin', 2000, NULL)
+-- Nhập BOMON
+INSERT INTO BOMON VALUES('BM01', N'Kỹ thuật lập trình', 2002, NULL, 'K01')
 
+-- Cách 2: Nhập BOMON với khóa ngoại là NULL, sau đó thì nhập KHOA và cuối cùng là 
+-- cập nhật lại khóa ngoại của BOMON
 
+INSERT INTO BOMON VALUES('BM03', N'Vi tích phân 1B', 2003, NULL, NULL)
 
+INSERT INTO KHOA VALUES ('K02', N'Toán - Tin', 2000, NULL)
 
+UPDATE BOMON
+SET MAKHOA = 'K02'
+WHERE MABOMON = 'BM03'
 
+-------- Trường hợp 2: Thực hiện nhập dữ liệu với 2 bảng (BOMON, GIAOVIEN) với ở BOMON, GIAOVIEN 
+-------- đều có khóa ngoại tạo thành vòng
+-- Thực hiện giống như Cách 2 của trường hợp 1 (Có thể nhập trước bất kỳ bảng nào)
 
+SELECT *
+FROM GIAOVIEN
 
+SELECT *
+FROM BOMON
+
+-- Thực hiện nhập GIAOVIEN trước rồi nhập BOMON
+INSERT INTO GIAOVIEN VALUES ('GV06', N'Nguyễn Nghiệp', '1970-10-05','Nam', NULL)
+
+INSERT INTO BOMON VALUES ('BM04', 'Nhập môn lập trình', 2000, 'GV06',NULL)
+
+UPDATE GIAOVIEN
+SET MABOMON = 'BM04'
+WHERE MAGIAOVIEN = 'GV06'
+
+-------- Trường hợp 3: Nhập dữ liệu cho chính khóa ngoại của bảng đó (Khóa ngoại đến khóa ứng viên
+-------- của chính bảng đó luôn)
+-------- Nhập những người có MANQL NULL trước rồi => nhập những người có MANQL là những người vừa nhập sau
+-- Thêm thuộc tính cho bảng và khóa ngoại
+ALTER TABLE GIAOVIEN
+ADD MANQL char(5)
+
+ALTER TABLE GIAOVIEN 
+ADD CONSTRAINT FK_QUANLY_GIAOVIEN
+FOREIGN KEY (MANQL)
+REFERENCES GIAOVIEN(MAGIAOVIEN)
+
+-- Check:
+UPDATE GIAOVIEN
+SET MANQL = 'GV03'
+WHERE MAGIAOVIEN = 'GV01'
+
+SELECT *
+FROM GIAOVIEN 
+--------------------------------------------------------------
+------ 2.4. Lời khuyên
+-- B1: Tạo bảng kèm theo tạo ràng buộc khóa chính
+-- B2: Tạo ràng buộc khóa ngoại và các ràng buộc khác
+-- B3: Nhập dữ liệu
+--------------------------------------------------------------
+--------------------------------------------------------------
+------ 3. Cập nhật dữ liệu
+-------- Cập nhật tất cả các giáo viên có có lương < 50000 tăng thêm 10%:
+ALTER TABLE GIAOVIEN
+ADD LUONG int
+
+UPDATE GIAOVIEN 
+SET LUONG = 40000
+WHERE LUONG IS NULL
+
+UPDATE GIAOVIEN 
+SET LUONG = LUONG*1.1
+WHERE LUONG < 50000
+
+SELECT *
+FROM GIAOVIEN
+
+-------- Cập nhật tên và ngày sinh của nhân viên có MAGIAOVIEN='GV01' 
+-------- thành tên 'Hùng'và ngày sinh là '1/1/1984':
+
+UPDATE GIAOVIEN
+SET HOTEN = N'Hùng', NGAYSINH = '1/1/1984'
+WHERE MAGIAOVIEN = 'GV01'
+
+--------------------------------------------------------------
+------ 4. Xóa dữ liệu
+---- Xóa giáo viên GV01 của bảng GIAOVIEN
+DELETE FROM GIAOVIEN
+WHERE MAGIAOVIEN = 'GV01'
+-- Check 
+SELECT *
+FROM GIAOVIEN
+---- Xóa tất cả dữ liệu bảng GIAOVIEN
+ALTER TABLE BOMON DROP
+CONSTRAINT FK_BOMON_GIAOVIEN
+
+DELETE FROM GIAOVIEN
+
+--------------------------------------------------------------
+------ 5. Truy vấn dữ liệu
+SELECT * 
+FROM GIAOVIEN
+
+--------------------------------------------------------------
+------ 6. Tạo lược đồ cơ sở dữ liệu sử dụng Enterprise Manger: 
+-- Database Diagrams (Dễ)
+
+---END---
