@@ -20,6 +20,7 @@ This repository will describe all my knowledge about Microsoft SQL Server
 | Lab                 |   Content   |
 |:--------------------------:|:----------------:|
 |Lab 1 | Định nghĩa cấu trúc cơ sở dữ liệu bằng ngôn ngữ SQL|
+|Lab 2 | Truy vấn đơn giản |
 
 
 
