@@ -1,0 +1,325 @@
+﻿-- Lab 4: Truy vấn lồng
+USE SCHOOL_MANAGEMENT
+-- Viết các câu truy vấn cho bài tập Quản lý đề tài bằng ngôn ngữ SQL
+
+-------------------------------------------------------------------------
+-- Q35. Cho biết mức lương cao nhất của các giảng viên 
+SELECT MAX(LUONG) AS MUCLUONGCAONHAT
+FROM GIAOVIEN 
+
+-- Q36. Cho biết những giáo viên có lương lớn nhất
+-- ALL:
+SELECT *
+FROM GIAOVIEN 
+WHERE LUONG >= ALL(SELECT LUONG FROM GIAOVIEN)
+
+-- MAX 
+SELECT * 
+FROM GIAOVIEN 
+WHERE LUONG = (SELECT MAX(LUONG) FROM GIAOVIEN)
+
+-- Q37. Cho biết lương cao nhất trong bộ môn 'HTTT'
+SELECT MAX(LUONG) AS LUONGCAONHAT_HTTT
+FROM GIAOVIEN 
+WHERE MABM = 'HTTT'
+
+-- Q38. Cho biết tên giáo viên lớn tuổi nhất của bộ môn Hệ thống thông tin
+SELECT GV.HOTEN, (YEAR(GETDATE()) - YEAR(GV.NGAYSINH)) AS TUOI
+FROM GIAOVIEN AS GV, BOMON AS BM
+WHERE BM.TENBM = N'Hệ thống thông tin' AND BM.MABM = GV.MABM
+AND (YEAR(GETDATE()) - YEAR(GV.NGAYSINH)) >= ALL (SELECT (YEAR(GETDATE()) - YEAR(NGAYSINH))
+												  FROM GIAOVIEN AS GV_HTTT, BOMON AS BM_HTTT
+												  WHERE GV_HTTT.MABM = BM_HTTT.MABM AND BM_HTTT.TENBM = N'Hệ thống thông tin')
+
+-- Check: 
+SELECT *
+FROM GIAOVIEN
+
+-- Q39. Cho biết tên giáo viên nhỏ tuổi nhất khoa Công nghệ thông tin.
+SELECT GV.HOTEN, (YEAR(GETDATE()) - YEAR(GV.NGAYSINH)) AS TUOI
+FROM GIAOVIEN AS GV, BOMON AS BM, KHOA AS K
+WHERE GV.MABM = BM.MABM AND BM.MAKHOA = K.MAKHOA AND K.TENKHOA = N'Công nghệ thông tin'
+AND (YEAR(GETDATE()) - YEAR(GV.NGAYSINH)) <= (SELECT MIN(YEAR(GETDATE()) - YEAR(NGAYSINH))
+											  FROM GIAOVIEN AS GV_CNTT, BOMON AS BM_CNTT, KHOA AS K_CNTT
+											  WHERE GV_CNTT.MABM = BM_CNTT.MABM AND BM_CNTT.MAKHOA = K_CNTT.MAKHOA
+											  AND K_CNTT.TENKHOA = N'Công nghệ thông tin')
+
+-- Check:
+SELECT *
+FROM GIAOVIEN
+-- => Có thể thay điều kiện ở WHERE để so sánh TUOI ở khía cạnh ngày, tháng luôn, ví dụ:
+SELECT GV.HOTEN, (YEAR(GETDATE()) - YEAR(GV.NGAYSINH)) AS TUOI
+FROM GIAOVIEN AS GV, BOMON AS BM, KHOA AS K
+WHERE GV.MABM = BM.MABM AND BM.MAKHOA = K.MAKHOA AND K.TENKHOA = N'Công nghệ thông tin'
+AND (GETDATE() - GV.NGAYSINH) <= (SELECT MIN(GETDATE() - NGAYSINH)
+											  FROM GIAOVIEN AS GV_CNTT, BOMON AS BM_CNTT, KHOA AS K_CNTT
+											  WHERE GV_CNTT.MABM = BM_CNTT.MABM AND BM_CNTT.MAKHOA = K_CNTT.MAKHOA
+											  AND K_CNTT.TENKHOA = N'Công nghệ thông tin')
+
+-- Q40. Cho biết tên giáo viên và tên khoa của giáo viên có lương cao nhất
+SELECT GV.HOTEN, K.TENKHOA, GV.LUONG
+FROM GIAOVIEN AS GV, BOMON AS BM, KHOA AS K
+WHERE GV.MABM = BM.MABM AND K.MAKHOA = BM.MAKHOA
+AND GV.LUONG >= ALL(SELECT LUONG 
+					FROM GIAOVIEN)
+
+-- Q41. Cho biết những giáo viên có lương lớn nhất trong bộ môn của họ
+SELECT BM.TENBM, GV.HOTEN, GV.LUONG
+FROM GIAOVIEN AS GV, BOMON AS BM
+WHERE GV.MABM = BM.MABM AND GV.LUONG = (SELECT MAX(LUONG)
+										 FROM GIAOVIEN AS GV_BM
+										 WHERE GV_BM.MABM = GV.MABM)
+GROUP BY BM.MABM, BM.TENBM, GV.HOTEN, GV.LUONG
+ 
+-- Check:
+SELECT *
+FROM GIAOVIEN
+
+-- Q42. Cho biết tên những đề tài mà giáo viên Nguyễn Hoài An chưa tham gia
+---- NOT IN
+SELECT DT.TENDT 
+FROM DETAI AS DT
+WHERE DT.MADT NOT IN (SELECT TGDT.MADT
+					  FROM GIAOVIEN AS GV_NHA, THAMGIADT AS TGDT
+				      WHERE GV_NHA.MAGV = TGDT.MADT AND GV_NHA.HOTEN = N'Nguyễn Hoài An')
+
+---- NOT EXISTS
+SELECT DT.TENDT 
+FROM DETAI AS DT
+WHERE NOT EXISTS (SELECT TGDT.MADT
+				  FROM GIAOVIEN AS GV_NHA, THAMGIADT AS TGDT
+				  WHERE GV_NHA.MAGV = TGDT.MADT AND GV_NHA.HOTEN = N'Nguyễn Hoài An'
+				  AND DT.MADT = TGDT.MADT)
+---- Check:
+SELECT *
+FROM GIAOVIEN 
+
+SELECT *
+FROM THAMGIADT
+
+SELECT *
+FROM DETAI
+
+-- Q43. Cho biết những đề tài mà giáo viên Nguyễn Hoài An chưa tham gia. Xuất ra tên đề tài, 
+-- tên người chủ nhiệm đề tài.
+SELECT DT.TENDT, GVCNDT.MAGV, GVCNDT.HOTEN AS GVCNDT
+FROM DETAI AS DT, GIAOVIEN AS GVCNDT
+WHERE DT.GVCNDT = GVCNDT.MAGV AND
+DT.MADT NOT IN (SELECT TGDT.MADT
+			    FROM THAMGIADT AS TGDT, GIAOVIEN AS GV_NHA
+				WHERE GV_NHA.HOTEN = N'Nguyễn Hoài An' AND GV_NHA.MAGV = TGDT.MAGV)
+
+-- Check 
+SELECT *
+FROM DETAI
+
+-- Q44. Cho biết tên những giáo viên khoa Công nghệ thông tin mà chưa tham gia đề tài nào
+SELECT GV.MAGV, GV.HOTEN
+FROM GIAOVIEN AS GV, BOMON AS BM, KHOA AS K
+WHERE GV.MABM = BM.MABM AND K.MAKHOA = BM.MAKHOA AND K.TENKHOA = N'Công nghệ thông tin'
+AND GV.MAGV NOT IN (SELECT TGDT.MAGV
+					FROM THAMGIADT AS TGDT)
+
+---- Lý do: Vì tất cả những giáo viên khoa Công nghệ thông tin đều đã tham gia một đề tài nào đó
+---- Có thể test lại với các Khoa khác
+SELECT *
+FROM KHOA
+---- Check:
+SELECT *
+FROM GIAOVIEN
+
+SELECT *
+FROM THAMGIADT
+
+-- Q45. Tìm những giáo viên không tham gia bất kỳ đề tài nào
+SELECT *
+FROM GIAOVIEN AS GV
+WHERE GV.MAGV NOT IN (SELECT MAGV FROM THAMGIADT)
+
+---- Check:
+SELECT DISTINCT MAGV
+FROM THAMGIADT
+
+-- Q46. Cho biết giáo viên có lương lớn hơn lương của giáo viên "Nguyễn Hoài An"
+SELECT GV.*
+FROM GIAOVIEN AS GV
+WHERE GV.HOTEN != N'Nguyễn Hoài An' AND LUONG > (SELECT LUONG
+											     FROM GIAOVIEN AS GV_NHA
+												 WHERE GV_NHA.HOTEN = N'Nguyễn Hoài An')
+
+---- Check:
+SELECT *
+FROM GIAOVIEN
+
+-- Q47. Tìm những trưởng bộ môn tham gia tối thiểu 1 đề tài
+-- Cách 1: (Chỉ áp dụng được khi tối thiểu 1 đề tài (2,3,... thì không được))
+SELECT GV.*
+FROM GIAOVIEN AS GV, BOMON AS BM
+WHERE BM.TRUONGBM = GV.MAGV 
+AND GV.MAGV IN (SELECT MAGV FROM THAMGIADT)
+
+-- Cách 2: Áp dụng khi tối thiểu bao nhiêu đề tài cũng được
+SELECT GV.*
+FROM GIAOVIEN AS GV, BOMON AS BM
+WHERE BM.TRUONGBM = GV.MAGV 
+AND (SELECT COUNT(TGDT.MAGV)
+	 FROM THAMGIADT AS TGDT
+	 WHERE TGDT.MAGV = GV.MAGV) >= 1
+
+---- Check:
+SELECT DISTINCT TRUONGBM
+FROM BOMON
+
+SELECT *
+FROM THAMGIADT
+
+-- Q48. Tìm giáo viên trùng tên và cùng giới tính với giáo viên khác trong cùng bộ môn
+---- Thêm thông tin giáo viên để thực hiện Q48:
+INSERT INTO GIAOVIEN VALUES ('011', N'Nguyễn Hoàng Nam', 2500, 'Nam', '1968-05-10', N'505/10 Kinh Dương Vương, Q.Bình Tân, TP HCM', NULL, 'MMT')
+---- Check:
+SELECT *
+FROM GIAOVIEN
+
+UPDATE GIAOVIEN 
+SET HOTEN = N'Nguyễn Hoàng Nam'
+WHERE MAGV = '011'
+
+SELECT SUBSTRING(HOTEN, LEN(HOTEN) - CHARINDEX(' ', REVERSE(HOTEN)) + 2, LEN(HOTEN)) AS TEN
+FROM GIAOVIEN
+
+-- Knowledge
+SELECT *
+FROM GIAOVIEN
+
+SELECT LEN(HOTEN) - CHARINDEX(' ', REVERSE(HOTEN))
+FROM GIAOVIEN 
+
+SELECT GV1.HOTEN
+FROM GIAOVIEN AS GV1
+WHERE SUBSTRING(GV1.HOTEN, LEN(GV1.HOTEN) - CHARINDEX(' ', REVERSE(GV1.HOTEN)) + 2, LEN(GV1.HOTEN)) 
+= ANY(SELECT SUBSTRING(GV2.HOTEN, LEN(GV2.HOTEN) - CHARINDEX(' ', REVERSE(GV2.HOTEN)) + 2, LEN(GV2.HOTEN))
+      FROM GIAOVIEN AS GV2
+	  WHERE GV2.PHAI = GV1.PHAI AND GV1.MAGV != GV2.MAGV)
+
+-- Q49. Tìm những giáo viên có lương lớn hơn lương của ít nhất một giáo viên bộ môn "Hóa phân tích"
+-- Xem thông tin bảng GIAOVIEN (Chọn bộ môn có nhiều giáo viên nhất)
+SELECT *
+FROM GIAOVIEN
+
+SELECT GV.*
+FROM GIAOVIEN AS GV, BOMON AS BM
+WHERE GV.MABM = BM.MABM AND BM.TENBM = N'Hóa phân tích'
+AND GV.LUONG > ANY(SELECT GV_HPT.LUONG 
+				   FROM GIAOVIEN AS GV_HPT, BOMON AS BM_HPT
+				   WHERE GV_HPT.MABM = BM_HPT.MABM AND BM_HPT.TENBM = N'Hóa phân tích')
+
+-- Q50. Tìm những giáo viên có lương lớn hơn lương của tất cả giáo viên thuộc bộ môn "Hệ thống thông tin"
+SELECT GV.*
+FROM GIAOVIEN AS GV, BOMON AS BM
+WHERE GV.MABM = BM.MABM
+AND GV.LUONG >= ALL(SELECT GV_HTTT.LUONG 
+				   FROM GIAOVIEN AS GV_HTTT, BOMON AS BM_HTTT
+				   WHERE GV_HTTT.MABM = BM_HTTT.MABM AND BM_HTTT.TENBM = N'Hệ thống thông tin')
+
+-- Q51. Cho biết tên khoa có đông giáo viên nhất
+SELECT K.TENKHOA
+FROM GIAOVIEN AS GV, BOMON AS BM, KHOA AS K
+WHERE GV.MABM = BM.MABM AND K.MAKHOA = BM.MAKHOA
+GROUP BY K.MAKHOA, K.TENKHOA
+HAVING COUNT(GV.MAGV) >= ALL(SELECT COUNT(GV.MAGV)
+							 FROM GIAOVIEN AS GV, BOMON AS BM, KHOA AS K
+							 WHERE GV.MABM = BM.MABM AND K.MAKHOA = BM.MAKHOA
+						     GROUP BY K.MAKHOA)
+
+-- Check:
+SELECT *
+FROM GIAOVIEN 
+
+-- Q52. Cho biết họ tên giáo viên chủ nhiệm nhiều đề tài nhất.
+SELECT GV.HOTEN
+FROM GIAOVIEN AS GV, DETAI AS DT
+WHERE GV.MAGV = DT.GVCNDT
+GROUP BY DT.GVCNDT, GV.HOTEN
+HAVING COUNT(*) >= ALL(SELECT COUNT(*)
+					   FROM GIAOVIEN AS GV, DETAI AS DT
+					   WHERE GV.MAGV = DT.GVCNDT
+					   GROUP BY DT.GVCNDT)
+
+-- Check:
+SELECT *
+FROM GIAOVIEN 
+
+SELECT *
+FROM DETAI
+
+-- Q53. Cho biết mã bộ môn có nhiều giáo viên nhất
+SELECT MABM
+FROM GIAOVIEN 
+GROUP BY MABM 
+HAVING COUNT(*) >= ALL(SELECT COUNT(*)
+					   FROM GIAOVIEN 
+					   GROUP BY MABM)
+
+-- Check:
+SELECT *
+FROM GIAOVIEN
+
+-- Q54. Cho biết tên giáo viên và tên bộ môn của giáo viên tham gia nhiều đề tài nhất.
+SELECT GV1.HOTEN, BM1.TENBM
+FROM GIAOVIEN AS GV1, BOMON AS BM1, THAMGIADT AS TGDT1
+WHERE GV1.MAGV = TGDT1.MAGV AND BM1.MABM = GV1.MABM
+GROUP BY GV1.MAGV, GV1.HOTEN, BM1.TENBM
+HAVING COUNT(DISTINCT TGDT1.MADT) >= ALL(SELECT COUNT(DISTINCT TGDT2.MADT)
+										 FROM GIAOVIEN AS GV2, THAMGIADT AS TGDT2
+										 WHERE GV2.MAGV = TGDT2.MAGV
+										 GROUP BY GV2.MAGV)
+
+---- Check:
+SELECT *
+FROM GIAOVIEN 
+
+SELECT *
+FROM THAMGIADT
+
+-- Q55. Cho biết tên giáo viên tham gia nhiều đề tài nhất của bộ môn HTTT.
+SELECT GV1.HOTEN
+FROM GIAOVIEN AS GV1, THAMGIADT AS TGDT1
+WHERE GV1.MABM = 'HTTT' AND TGDT1.MAGV = GV1.MAGV
+GROUP BY GV1.MAGV, GV1.HOTEN
+HAVING COUNT(DISTINCT TGDT1.MADT) >= ALL(SELECT COUNT(DISTINCT TGDT2.MADT)
+										 FROM GIAOVIEN GV2, THAMGIADT AS TGDT2
+										 WHERE GV2.MABM = 'HTTT' AND TGDT2.MAGV = GV2.MAGV
+										 GROUP BY GV2.MAGV)
+
+-- Q56. Cho biết tên giáo viên và tên bộ môn của giáo viên có nhiều người thân nhất.
+SELECT GV1.MAGV, GV1.HOTEN, BM1.TENBM
+FROM GIAOVIEN AS GV1, BOMON AS BM1, NGUOITHAN AS NT1
+WHERE GV1.MAGV = NT1.MAGV AND BM1.MABM = GV1.MABM
+GROUP BY GV1.MAGV, GV1.HOTEN, BM1.TENBM
+HAVING COUNT(*) >= ALL(SELECT COUNT(*) 
+					   FROM GIAOVIEN AS GV2, NGUOITHAN AS NT2
+					   WHERE GV2.MAGV = NT2.MAGV
+					   GROUP BY GV2.MAGV)
+
+-- Check:
+SELECT *
+FROM NGUOITHAN
+
+-- Q57. Cho biết tên trưởng bộ môn mà chủ nhiệm nhiều đề tài nhất
+SELECT GV1.MAGV, GV1.HOTEN
+FROM GIAOVIEN AS GV1, BOMON AS BM1, DETAI AS DT1
+WHERE GV1.MAGV = BM1.TRUONGBM AND DT1.GVCNDT = GV1.MAGV
+GROUP BY GV1.MAGV, GV1.HOTEN
+HAVING COUNT(DISTINCT DT1.MADT) >= ALL(SELECT COUNT(DISTINCT DT2.MADT)
+									   FROM GIAOVIEN AS GV2, BOMON AS BM2, DETAI AS DT2
+									   WHERE GV2.MAGV = BM2.TRUONGBM AND DT2.GVCNDT = GV2.MAGV
+									   GROUP BY GV2.MAGV)
+
+---- Check: 
+SELECT *
+FROM BOMON 
+
+SELECT *
+FROM DETAI
+
+----------------------------------- END -----------------------------------
