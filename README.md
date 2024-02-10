@@ -24,6 +24,6 @@ This repository will describe all my knowledge about Microsoft SQL Server
 |Lab 3 | Truy vấn sử dụng hàm kết hợp và gom nhóm |
 |Lab 4 | Truy vấn lồng |
 |Lab 5 | Truy vấn lồng nâng cao |
-
+|Lab 6 | Truy vấn nâng cao |
 
 
